@@ -45,6 +45,18 @@ Everything runs on **one Windows computer** that has Revit. All ports are localh
 
 Open PowerShell in the **repository root** (the folder with this README and `scripts/`). Each step is one command. Keep long-running services (steps 6, 7, 8) in their own terminals.
 
+## Quick start (clone and install)
+
+Close Revit, then run in PowerShell:
+
+~~~powershell
+git clone https://github.com/viktor-platform/revit-viktor-local-mcp.git
+cd revit-viktor-local-mcp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-all.ps1
+~~~
+
+Then finish the manual steps the script prints (VIKTOR Desktop worker, app registration, Revit) and start the services with `start-all.ps1`. Details below.
+
 ## Quick setup (scripted)
 
 Two scripts do the automatable parts of steps 3-7 below. Run them from the repository root.
