@@ -17,11 +17,6 @@ DEFAULT_EXECUTABLE_KEY = "mcp_bridge"
 REQUEST_FILE = "request.json"
 RESULT_FILE = "result.json"
 
-# Allow-list of MCP tools this app may call. Add a name here when you add a tool.
-ALLOWED_TOOLS = frozenset({"get_model_name", "list_categories"})
-# MCP tools whose C# method takes a `request` object (see RevitTools.cs). Their
-# arguments must be wrapped as {"request": {...}}; tools without it take no arguments.
-TOOLS_WITH_REQUEST = frozenset({"list_categories"})
 
 
 class RevitWorkerError(RuntimeError):
@@ -63,19 +58,20 @@ def parse_tool_result(result: Any) -> dict[str, Any]:
     return payload
 
 
-def parse_worker_result(payload: Any) -> dict[str, Any]:
+def parse_worker_result(payload: Any, operation: str) -> Any:
+    """Check the bridge envelope and return its ``result`` field."""
     if not isinstance(payload, dict):
         raise RevitWorkerError("The VIKTOR worker returned an invalid result.")
     if payload.get("status") != "success":
         raise RevitWorkerError(
             "The VIKTOR worker could not reach the local Revit tool bridge."
         )
-    if payload.get("operation") != "tools.call":
+    if payload.get("operation") != operation:
         raise RevitWorkerError("The VIKTOR worker returned an unexpected operation.")
-    return parse_tool_result(payload.get("result"))
+    return payload.get("result")
 
 
-def _decode_output(output_file: Any) -> dict[str, Any]:
+def _decode_output(output_file: Any) -> Any:
     if output_file is None:
         raise RevitWorkerError("The VIKTOR worker returned no result file.")
     getvalue = getattr(output_file, "getvalue", None)
@@ -90,19 +86,9 @@ def _decode_output(output_file: Any) -> dict[str, Any]:
     if not isinstance(raw, str):
         raise RevitWorkerError("The VIKTOR worker result was not text.")
     try:
-        payload = json.loads(raw)
+        return json.loads(raw)
     except json.JSONDecodeError as exc:
         raise RevitWorkerError("The VIKTOR worker returned malformed JSON.") from exc
-    return parse_worker_result(payload)
-
-
-def build_tool_arguments(name: str, request: dict[str, Any] | None) -> dict[str, Any]:
-    """Shape MCP tool arguments the way the C# server expects them."""
-    if name in TOOLS_WITH_REQUEST:
-        return {"request": request or {}}
-    if request:
-        raise RevitWorkerError(f"Revit tool {name!r} does not take arguments.")
-    return {}
 
 
 @dataclass(frozen=True)
@@ -121,28 +107,10 @@ class RevitWorkerClient:
             )
         return cls(executable_key=executable_key)
 
-    async def call_tool(
-        self, name: str, request: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        if name not in ALLOWED_TOOLS:
-            raise RevitWorkerError(f"Revit tool {name!r} is not allowed in this app.")
-
-        worker_request = {
-            "schema_version": WORKER_SCHEMA_VERSION,
-            "operation": "tools.call",
-            "tool": {
-                "name": name,
-                "arguments": build_tool_arguments(name, request),
-            },
-            "limits": {"timeout_seconds": self.timeout_seconds},
-        }
+    def _run(self, request: dict[str, Any]) -> Any:
+        """Send one request file through the Generic worker and decode result.json."""
         analysis = GenericAnalysis(
-            files=[
-                (
-                    REQUEST_FILE,
-                    BytesIO(json.dumps(worker_request).encode("utf-8")),
-                )
-            ],
+            files=[(REQUEST_FILE, BytesIO(json.dumps(request).encode("utf-8")))],
             executable_key=self.executable_key,
             output_filenames=[RESULT_FILE],
         )
@@ -156,3 +124,32 @@ class RevitWorkerClient:
                 "Could not run the configured VIKTOR MCP worker. Keep the worker, "
                 "local bridge, Revit, and the Revit MCP server running."
             ) from exc
+
+    async def list_tools(self) -> list[dict[str, Any]]:
+        """Tool definitions (name, description, inputSchema, annotations) from the server."""
+        payload = self._run(
+            {
+                "schema_version": WORKER_SCHEMA_VERSION,
+                "operation": "tools.list",
+                "limits": {"timeout_seconds": self.timeout_seconds},
+            }
+        )
+        result = parse_worker_result(payload, "tools.list")
+        tools = result.get("tools") if isinstance(result, dict) else None
+        if not isinstance(tools, list) or not all(isinstance(t, dict) for t in tools):
+            raise RevitWorkerError("The MCP server returned an invalid tool list.")
+        return tools
+
+    async def call_tool(
+        self, name: str, arguments: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Run one MCP tool. ``arguments`` are passed exactly as the tool schema defines."""
+        payload = self._run(
+            {
+                "schema_version": WORKER_SCHEMA_VERSION,
+                "operation": "tools.call",
+                "tool": {"name": name, "arguments": arguments or {}},
+                "limits": {"timeout_seconds": self.timeout_seconds},
+            }
+        )
+        return parse_tool_result(parse_worker_result(payload, "tools.call"))

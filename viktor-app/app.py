@@ -1,6 +1,7 @@
 import viktor as vkt
 from agent.context import AgentContext
 from agent.runner import run_agent
+from state.results import clear_results
 from state.tables import clear_table, read_table, storage_prefix
 
 EMPTY_TABLE_MESSAGE = (
@@ -55,7 +56,9 @@ class Controller(vkt.Controller):
 
         prefix = storage_prefix(entity_id, workspace_id)
         if is_first_user_turn(conversation):
-            clear_table(prefix)  # a new conversation starts with an empty table
+            # a new conversation starts clean
+            clear_table(prefix)
+            clear_results(prefix)
 
         stream = run_agent(messages, AgentContext(storage_prefix=prefix))
         return vkt.ChatResult(conversation, stream)

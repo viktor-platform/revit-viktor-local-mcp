@@ -36,6 +36,9 @@ class FakeStorage:
             raise FileNotFoundError(key)
         return FakeFile(self.items[key])
 
+    def list(self, *, prefix=None, scope):
+        return {k: FakeFile(v) for k, v in self.items.items() if k.startswith(prefix or "")}
+
     def delete(self, key, *, scope):
         if key not in self.items:
             raise FileNotFoundError(key)

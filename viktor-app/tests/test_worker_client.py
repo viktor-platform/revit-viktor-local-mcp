@@ -9,7 +9,6 @@ from tools.worker_client import (
     RESULT_FILE,
     RevitWorkerClient,
     RevitWorkerError,
-    build_tool_arguments,
     parse_tool_result,
     parse_worker_result,
 )
@@ -51,34 +50,25 @@ def test_parse_tool_result_rejects_bad_results(result):
         parse_tool_result(result)
 
 
-def test_parse_worker_result_requires_success_and_tools_call():
-    ok = {"status": "success", "operation": "tools.call", "result": {"structuredContent": {"a": 1}}}
-    assert parse_worker_result(ok) == {"a": 1}
+def test_parse_worker_result_checks_status_and_operation():
+    ok = {"status": "success", "operation": "tools.call", "result": {"a": 1}}
+    assert parse_worker_result(ok, "tools.call") == {"a": 1}
     with pytest.raises(RevitWorkerError):
-        parse_worker_result({**ok, "status": "error"})
+        parse_worker_result({**ok, "status": "error"}, "tools.call")
     with pytest.raises(RevitWorkerError):
-        parse_worker_result({**ok, "operation": "tools.list"})
+        parse_worker_result(ok, "tools.list")
     with pytest.raises(RevitWorkerError):
-        parse_worker_result("nope")
-
-
-def test_build_tool_arguments_wraps_request_only_for_request_tools():
-    assert build_tool_arguments("list_categories", {"includeEmpty": True}) == {
-        "request": {"includeEmpty": True}
-    }
-    assert build_tool_arguments("list_categories", None) == {"request": {}}
-    assert build_tool_arguments("get_model_name", None) == {}
-    with pytest.raises(RevitWorkerError):
-        build_tool_arguments("get_model_name", {"x": 1})
+        parse_worker_result("nope", "tools.call")
 
 
 class FakeAnalysis:
+    """Stands in for GenericAnalysis; answers according to the operation requested."""
+
     instances: ClassVar[list] = []
 
     def __init__(self, *, files, executable_key, output_filenames):
-        self.files = files
+        self.request = json.loads(files[0][1].getvalue())
         self.executable_key = executable_key
-        self.output_filenames = output_filenames
         self.timeout = None
         self.instances.append(self)
 
@@ -87,33 +77,39 @@ class FakeAnalysis:
 
     def get_output_file(self, filename):
         assert filename == RESULT_FILE
+        if self.request["operation"] == "tools.list":
+            result = {"tools": [{"name": "get_model_name"}]}
+        else:
+            result = {"structuredContent": {"title": "Demo"}}
         payload = {
             "status": "success",
-            "operation": "tools.call",
-            "result": {"structuredContent": {"title": "Demo"}},
+            "operation": self.request["operation"],
+            "result": result,
         }
         return BytesIO(json.dumps(payload).encode())
 
 
-async def test_call_tool_builds_request_file_and_parses_result():
+async def test_call_tool_passes_arguments_through_unchanged():
     FakeAnalysis.instances.clear()
     with patch.object(worker_client, "GenericAnalysis", FakeAnalysis):
-        result = await RevitWorkerClient().call_tool("get_model_name")
+        result = await RevitWorkerClient().call_tool(
+            "list_categories", {"request": {"includeEmpty": True}}
+        )
 
     assert result == {"title": "Demo"}
     analysis = FakeAnalysis.instances[0]
     assert analysis.executable_key == "mcp_bridge"
     assert analysis.timeout == 210
-    name, handle = analysis.files[0]
-    sent = json.loads(handle.getvalue())
-    assert name == "request.json"
-    assert sent["operation"] == "tools.call"
-    assert sent["tool"] == {"name": "get_model_name", "arguments": {}}
+    assert analysis.request["tool"] == {
+        "name": "list_categories",
+        "arguments": {"request": {"includeEmpty": True}},
+    }
 
 
-async def test_call_tool_rejects_tools_outside_the_allow_list():
-    with pytest.raises(RevitWorkerError, match="not allowed"):
-        await RevitWorkerClient().call_tool("execute_revit_code")
+async def test_list_tools_returns_server_definitions():
+    with patch.object(worker_client, "GenericAnalysis", FakeAnalysis):
+        tools = await RevitWorkerClient().list_tools()
+    assert tools == [{"name": "get_model_name"}]
 
 
 async def test_call_tool_converts_worker_failures():

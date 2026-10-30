@@ -13,21 +13,33 @@ For the complete install order see the [root README](../README.md).
 | File | Purpose |
 | --- | --- |
 | `app.py` | `Parametrization` (intro text + `vkt.Chat`) and `Controller` (`call_agent`, `results_table`) |
-| `agent/runner.py` | Runs the agent and streams text + "Running/Done" tool rows into the chat |
+| `agent/runner.py` | Builds the agent, runs it, streams text and "Running/Done" tool rows into the chat |
 | `agent/system_prompt.xml` | The agent's instructions: edit this to change behaviour |
-| `agent/context.py` | Values passed to every tool (the storage key prefix) |
-| `tools/revit_tools.py` | The agent's tools |
-| `tools/worker_client.py` | Calls MCP tools through a VIKTOR Generic worker (`GenericAnalysis`) |
-| `state/tables.py` | Saves the latest table so the TableView can show it |
+| `tools/mcp_tools.py` | **Builds the agent's tools from the MCP server's `tools.list`**; each call stores its full result |
+| `tools/viktor_tools.py` | Tools that live in the app: `show_table`, `report_progress` |
+| `tools/worker_client.py` | `list_tools` / `call_tool` through a VIKTOR Generic worker (`GenericAnalysis`) |
+| `state/results.py` | Stores raw MCP results in entity storage (`vkt.Storage`) |
+| `state/table_builder.py` | Pure functions that turn a stored result into table columns and rows |
+| `state/tables.py` | Stores the table the TableView shows |
 | `viktor.config.toml` | App type, Python version, `registered_name` |
+
+## Where tools come from
+
+The C# MCP server is the **single source of truth**. At the start of each chat turn the app asks the worker for `tools.list` (cached for 5 minutes) and turns every tool into an agent tool using the server's name, description and input schema. Adding a tool in C# makes it available to the agent with no Python change.
+
+Safety: only tools the server marks read-only (`ReadOnly = true` in C#, sent as `readOnlyHint`) are exposed. Set the environment variable `VIKTOR_MCP_ALLOW_WRITE_TOOLS=true` to expose the others.
+
+If the worker or MCP server is down, the agent still starts, is told why no Revit tools are available, and tells the user.
 
 ## How the table view gets its data
 
-VIKTOR jobs are stateless, so the chat job and the table job communicate through entity storage:
+Three separate steps, so MCP tools stay free of any VIKTOR presentation code:
 
-1. A tool calls Revit and saves the **full** result with `save_table(...)`.
-2. The tool returns only a **short summary** to the LLM (small context, fewer mistakes).
-3. `results_table` reads the stored table with `read_table(...)`. Press **Refresh table** after the agent finishes.
+1. **Run & store.** Every MCP tool call saves its **full** result to storage. The LLM receives the result, or a short preview with list counts when it is large (over 6 KB).
+2. **Format.** The agent calls `show_table`, which reads the stored result (the data never passes through the LLM), picks the list, columns and sort order, and saves a table.
+3. **Render.** `results_table` (the `TableView`) shows the saved table. Press **Refresh table** after the agent finishes.
+
+`show_table` options: `source` (which tool's result, default the latest), `list_key`, `columns`, `sort_by`, `descending`, `title`, `limit`. Flat results are shown as Property / Value rows.
 
 ## Run the app
 
@@ -44,10 +56,9 @@ The Revit tools only work when the full local chain is running. Without it, the 
 
 ## Add a tool
 
-1. In `tools/worker_client.py` add the MCP tool name to `ALLOWED_TOOLS`. If its C# method takes a `request` object, also add it to `TOOLS_WITH_REQUEST`.
-2. In `tools/revit_tools.py` write a plain `run_<tool>(...)` function (call the worker, `save_table(...)`, return `tool_ok(...)`), a thin `@function_tool` wrapper, and add the wrapper to `build_agent_tools()`.
-3. Optionally add a friendly name to `TOOL_DISPLAY_NAMES` in `agent/runner.py` and mention the tool in `agent/system_prompt.xml`.
-4. Add a test next to `tests/test_tools.py` using `FakeClient` and `FakeStorage`.
+Nothing to do here. Add the tool in C# ([steps](../revit-mcp-server/README.md#add-a-tool)), mark it `ReadOnly = true`, republish the MCP server and restart it; the app picks it up within 5 minutes (or on the next app restart).
+
+Change only what the *agent* does with results by editing `agent/system_prompt.xml`, or add app-side behaviour (like `show_table`) in `tools/viktor_tools.py` and list it in `viktor_tools()`.
 
 ## Tests
 
@@ -58,10 +69,10 @@ pip install -r requirements.txt pytest pytest-asyncio
 pytest
 ~~~
 
-The tests use fakes for the worker and storage, so they need neither Revit nor VIKTOR Desktop.
+The tests use fakes for the worker, MCP tool list and storage, so they need neither Revit nor VIKTOR Desktop.
 
 ## Notes
 
-- Tool results sent to the LLM are capped at 16 KiB (`tools/common.py`); put big data in the table instead.
+- Tool results sent to the LLM are capped at 16 KiB (`tools/common.py`); large results are previewed and shown with `show_table`.
 - The agent model is set by `MODEL_NAME` in `agent/runner.py`. Fair-usage errors (HTTP 429) are reported in the chat.
 - The executable key defaults to `mcp_bridge`; override with the `VIKTOR_MCP_WORKER_EXECUTABLE_KEY` environment variable.

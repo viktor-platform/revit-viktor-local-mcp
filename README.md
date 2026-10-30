@@ -12,7 +12,7 @@ Ask the agent *"List the categories in the model"* and the full result appears i
 ## How it fits together
 
 ```text
-VIKTOR app (Chat + TableView)
+VIKTOR app (Chat + TableView; tools built from tools.list)
    │  GenericAnalysis job
    ▼
 VIKTOR Desktop "Generic" worker ── runs the per-job CLI (viktor-mcp-worker)
@@ -31,7 +31,7 @@ Everything runs on **one Windows computer** that has Revit. All ports are localh
 
 | Folder | Contents |
 | --- | --- |
-| [viktor-app/](viktor-app/README.md) | VIKTOR app: `vkt.Chat` agent, `TableView`, tools |
+| [viktor-app/](viktor-app/README.md) | VIKTOR app: `vkt.Chat` agent, `TableView`, `show_table` tool |
 | [viktor-mcp-worker/](viktor-mcp-worker/README.md) | Python bridge between VIKTOR Desktop and the MCP server |
 | [revit-mcp-server/](revit-mcp-server/README.md) | C# Revit add-in and MCP server |
 | [scripts/](scripts/) | PowerShell setup/start scripts used below |
@@ -153,15 +153,14 @@ A complete chain is: **Revit with a model open → add-in → MCP server → bri
 
 ## Adding your own tool
 
-Five small edits (a worked example is in [revit-mcp-server/README.md](revit-mcp-server/README.md#add-a-tool) and [viktor-app/README.md](viktor-app/README.md#add-a-tool)):
+Add it in C# only; the VIKTOR app builds its agent tools from the server's tool list at run time ([details](viktor-app/README.md#where-tools-come-from)). A worked example is in [revit-mcp-server/README.md](revit-mcp-server/README.md#add-a-tool):
 
 1. **Contract**: request/result classes in `revit-mcp-server/src/RevitMcp.Contracts/`.
 2. **Revit logic**: a method in `RevitMcp.Core/Services/` that uses the Revit API.
 3. **Handler**: an `IRevitCommandHandler` in `RevitMcp.RevitAddin/Handlers/`, registered in `App.cs`.
-4. **MCP tool**: a method in `RevitMcp.Server/Tools/RevitTools.cs` with the same name.
-5. **VIKTOR**: allow the name in `tools/worker_client.py`, add a `@function_tool` in `tools/revit_tools.py`, and list it in `build_agent_tools()`.
+4. **MCP tool**: a method in `RevitMcp.Server/Tools/RevitTools.cs` with the same name and `ReadOnly = true`.
 
-Rebuild the add-in (step 4, with Revit closed), republish the server (step 5), restart the services.
+Rebuild the add-in (step 4, with Revit closed), republish the server (step 5) and restart the services. Results can be shown in the table with no extra code: the agent calls `show_table`.
 
 ## Limitations
 

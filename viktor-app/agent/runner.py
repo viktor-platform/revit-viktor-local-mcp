@@ -24,7 +24,8 @@ from agents.items import TResponseInputItem
 from openai import AsyncOpenAI
 from openai.types.responses import ResponseTextDeltaEvent
 from openai.types.shared import Reasoning
-from tools.revit_tools import build_agent_tools
+from tools.mcp_tools import load_mcp_tools
+from tools.viktor_tools import viktor_tools
 
 from agent.context import AgentContext
 
@@ -34,10 +35,7 @@ EMPTY_RESPONSE = (
     "The agent finished without a final answer. Any tool results above are partial; "
     "check the Revit results table or ask again."
 )
-TOOL_DISPLAY_NAMES = {
-    "get_model_name": "Get Model Name",
-    "list_categories": "List Categories",
-}
+TOOL_DISPLAY_NAMES = {"show_table": "Show Table"}  # others: snake_case -> Title Case
 PROGRESS_TOOL_NAME = "report_progress"
 
 _event_loop: asyncio.AbstractEventLoop | None = None
@@ -59,7 +57,15 @@ def load_system_prompt() -> str:
     )
 
 
-def build_agent() -> Agent[AgentContext]:
+async def build_agent() -> Agent[AgentContext]:
+    """Tools = the app's own tools + every read-only tool the MCP server lists."""
+    mcp_tools, warning = await load_mcp_tools()
+    instructions = load_system_prompt()
+    if warning:
+        instructions += (
+            f"\n\n<tool_status>{warning} Tell the user, and do not guess model data."
+            "</tool_status>"
+        )
     return Agent[AgentContext](
         name="Revit Model Assistant",
         model=MODEL_NAME,
@@ -67,8 +73,8 @@ def build_agent() -> Agent[AgentContext]:
             reasoning=Reasoning(effort="medium"),
             parallel_tool_calls=False,
         ),
-        instructions=load_system_prompt(),
-        tools=build_agent_tools(),
+        instructions=instructions,
+        tools=[*viktor_tools(), *mcp_tools],
     )
 
 
@@ -175,7 +181,7 @@ def run_agent(
         try:
             configure_viktor_agents_client()
             result = Runner.run_streamed(
-                build_agent(),
+                await build_agent(),
                 input=cast("list[TResponseInputItem]", chat_history),
                 context=context,
                 max_turns=MAX_AGENT_TURNS,

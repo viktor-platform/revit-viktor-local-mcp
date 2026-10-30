@@ -59,7 +59,7 @@ Example: a `count_elements` tool that counts the elements of one category.
    }
    ~~~
 
-   Keep `[Description]` text clear: it becomes the tool schema the LLM reads.
+   Keep `[Description]` text clear: it becomes the tool schema the LLM reads. Mark the MCP tool `ReadOnly = true` (step 4) or the VIKTOR app hides it by default.
 
 2. **Revit logic** a method on `ModelQueryService` (or a new service) in `RevitMcp.Core/Services/`, e.g. `int CountElements(Document doc, string categoryName)` using `FilteredElementCollector`.
 
@@ -74,7 +74,7 @@ Example: a `count_elements` tool that counts the elements of one category.
        => InvokeToolAsync("count_elements", request, cancellationToken);
    ~~~
 
-5. Rebuild the add-in (Revit closed), republish and restart the server, then add the tool on the VIKTOR side (see [viktor-app](../viktor-app/README.md#add-a-tool)).
+5. Rebuild the add-in (Revit closed), republish and restart the server. The VIKTOR app lists the server's tools at run time, so it needs no change (see [viktor-app](../viktor-app/README.md#where-tools-come-from)).
 
 JSON property names are camelCase on the wire (`CategoryName` → `categoryName`).
 
