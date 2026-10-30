@@ -28,3 +28,6 @@ revit-mcp-server/**/*.nupkg
 viktor-app/venv/
 viktor-app/.venv/
 .env
+
+# machine-specific Desktop config
+*.local.yaml

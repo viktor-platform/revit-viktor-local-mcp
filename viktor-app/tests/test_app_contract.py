@@ -47,3 +47,15 @@ class TestAppContract(unittest.TestCase):
             result = Controller().results_table(params=None, entity_id=1)
         self.assertEqual(result.data, stored["rows"])
         self.assertEqual(result.column_headers, stored["columns"])
+
+    @mock_View(Controller)
+    def test_stored_mixed_type_table_serialises_with_the_real_sdk(self):
+        # Regression: a Property/Value table (text + bool) crashed the view in VIKTOR.
+        stored = {
+            "title": "Model",
+            "columns": ["Property", "Value"],
+            "rows": [["Title", "Demo"], ["Workshared", False], ["Version", 2027]],
+        }
+        with patch("app.read_table", return_value=stored):
+            result = Controller().results_table(params=None, entity_id=1)
+        result._serialize()  # raises ValueError for mixed-type columns

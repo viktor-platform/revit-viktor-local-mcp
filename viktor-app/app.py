@@ -2,6 +2,7 @@ import viktor as vkt
 from agent.context import AgentContext
 from agent.runner import run_agent
 from state.results import clear_results
+from state.table_builder import normalize_columns
 from state.tables import clear_table, read_table, storage_prefix
 
 EMPTY_TABLE_MESSAGE = (
@@ -74,7 +75,7 @@ class Controller(vkt.Controller):
                 enable_sorting_and_filtering=False,
             )
         return vkt.TableResult(
-            table["rows"],
+            normalize_columns(table["rows"]),  # also fixes tables stored before this rule
             column_headers=table["columns"],
             enable_sorting_and_filtering=True,
         )

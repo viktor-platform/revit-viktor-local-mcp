@@ -62,9 +62,7 @@ def humanize(key: str) -> str:
 
 def cell(value: Any) -> Any:
     """Make any JSON value safe to show in one table cell."""
-    if value is None:
-        return ""
-    if isinstance(value, bool | int | float | str):
+    if value is None or isinstance(value, bool | int | float | str):
         return value
     return json.dumps(value, ensure_ascii=False, default=str, separators=(",", ":"))
 
@@ -76,6 +74,38 @@ def _sort_key(value: Any) -> tuple[int, Any]:
     if value is None:
         return (2, "")
     return (1, str(value))
+
+
+def _kind(value: Any) -> str:
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int | float):
+        return "number"
+    return "text"
+
+
+def _as_text(value: Any) -> str:
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    return str(value)
+
+
+def normalize_columns(rows: list[list[Any]]) -> list[list[Any]]:
+    """Make every column single-typed, which VIKTOR requires when sorting is enabled.
+
+    ``None`` is allowed anywhere. A column holding more than one of text / number / bool
+    is converted to text entirely (bools become Yes/No), so it still displays correctly.
+    """
+    if not rows:
+        return rows
+    mixed = [
+        len({_kind(row[i]) for row in rows if row[i] is not None}) > 1
+        for i in range(len(rows[0]))
+    ]
+    return [
+        [_as_text(v) if mixed[i] and v is not None else v for i, v in enumerate(row)]
+        for row in rows
+    ]
 
 
 def build_table(
@@ -96,7 +126,7 @@ def build_table(
         pairs = [[humanize(k), cell(v)] for k, v in result.items()]
         return {
             "columns": ["Property", "Value"],
-            "rows": pairs[:limit],
+            "rows": normalize_columns(pairs[:limit]),
             "totalRows": len(pairs),
             "truncated": len(pairs) > limit,
         }
@@ -112,7 +142,7 @@ def build_table(
         rows = sorted(rows, key=lambda r: _sort_key(r.get(sort_by)), reverse=descending)
     return {
         "columns": [humanize(k) for k in keys],
-        "rows": [[cell(r.get(k)) for k in keys] for r in rows[:limit]],
+        "rows": normalize_columns([[cell(r.get(k)) for k in keys] for r in rows[:limit]]),
         "totalRows": len(rows),
         "truncated": len(rows) > limit,
     }

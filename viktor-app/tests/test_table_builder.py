@@ -1,5 +1,11 @@
 import pytest
-from state.table_builder import TableBuildError, build_table, find_rows, humanize
+from state.table_builder import (
+    TableBuildError,
+    build_table,
+    find_rows,
+    humanize,
+    normalize_columns,
+)
 
 CATEGORIES = {
     "modelTitle": "Demo",
@@ -42,16 +48,18 @@ def test_limit_truncates_and_reports_it():
 def test_flat_result_becomes_property_value_rows():
     table = build_table({"title": "Demo", "isWorkshared": False, "extra": {"a": 1}})
     assert table["columns"] == ["Property", "Value"]
+    # the Value column mixes text and bool, so it is converted to text (Yes/No)
     assert table["rows"] == [
         ["Title", "Demo"],
-        ["Is workshared", False],
+        ["Is workshared", "No"],
         ["Extra", '{"a":1}'],
     ]
 
 
 def test_mixed_and_missing_values_sort_without_errors():
     result = {"rows": [{"v": 2}, {"v": "b"}, {}, {"v": 1}]}
-    assert [r[0] for r in build_table(result, sort_by="v")["rows"]] == [1, 2, "b", ""]
+    values = [r[0] for r in build_table(result, sort_by="v")["rows"]]
+    assert values == ["1", "2", "b", None]  # mixed column -> text, missing stays None
 
 
 @pytest.mark.parametrize(
@@ -61,3 +69,13 @@ def test_mixed_and_missing_values_sort_without_errors():
 def test_bad_requests_raise_table_build_error(kwargs):
     with pytest.raises(TableBuildError):
         build_table(CATEGORIES, **kwargs)
+
+
+def test_normalize_keeps_pure_columns_and_none():
+    rows = [["a", 1, True], ["b", 2.5, None], ["c", None, False]]
+    assert normalize_columns(rows) == rows
+
+
+def test_normalize_converts_only_the_mixed_column():
+    rows = [["a", 1], ["b", "x"], ["c", None]]
+    assert normalize_columns(rows) == [["a", "1"], ["b", "x"], ["c", None]]
