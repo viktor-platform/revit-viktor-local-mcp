@@ -45,6 +45,24 @@ Everything runs on **one Windows computer** that has Revit. All ports are localh
 
 Open PowerShell in the **repository root** (the folder with this README and `scripts/`). Each step is one command. Keep long-running services (steps 6, 7, 8) in their own terminals.
 
+## Quick setup (scripted)
+
+Two scripts do the automatable parts of steps 3-7 below. Run them from the repository root.
+
+~~~powershell
+# 1. Check prerequisites only (changes nothing)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-all.ps1 -CheckOnly
+
+# 2. Install: worker, Revit add-in (build + register), MCP server, Desktop config
+#    (close Revit first; add -RevitVersion 2026 etc. to pick a version, -InstallApp for the app)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-all.ps1
+
+# 3. After the manual steps it prints, start the services (add -StartApp for the VIKTOR app)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-all.ps1 -StartApp
+~~~
+
+What stays manual, because it needs you: signing in to VIKTOR Desktop and adding the Generic worker (the script puts the exact config on your clipboard), allowing the add-in when Revit asks, opening a model, and registering your VIKTOR app name. Use `-WorkerDir` with both scripts if `C:\VIKTOR\MCPWorker` is already taken. The step-by-step guide below explains each part and is the fallback if a script fails.
+
 ## 1. Install and configure the VIKTOR CLI
 
 Download the Windows CLI from your VIKTOR environment's developer settings (`https://<your-environment>.viktor.ai/workspaces/settings/developer`), follow the [CLI installation guide](https://docs.viktor.ai/docs/create-apps/references/cli/), then run `viktor-cli configure` with your environment, email and developer token. Choose **Python 3.12**.
@@ -82,6 +100,10 @@ maxParallelProcesses: 1
 ~~~
 
 Save, start the worker and confirm **Running/Connected**. Restart it after any change to `config.yaml`. Desktop launches the per-job CLI itself; you never start it by hand. The executable key `mcp_bridge` must match the app's default (`VIKTOR_MCP_WORKER_EXECUTABLE_KEY`).
+
+### Why a Generic worker?
+
+VIKTOR's Python worker receives a **script from the cloud app and runs it on your computer**. The Generic worker only runs **executables you listed yourself** in its `config.yaml`, so the cloud app cannot make the machine run new code. Here the executable is a tiny fixed command (`viktor_mcp_worker.cli`) that forwards a request to the local bridge, so Generic is the safer and simpler fit. Use the Python worker when the script itself must come from the app, as in the STAAD.Pro and ETABS integrations.
 
 ## 4. Build and register the Revit add-in
 
