@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RevitMcp.RevitAddin</AssemblyName>
+    <RootNamespace>RevitMcp.RevitAddin</RootNamespace>
+    <RevitVersion Condition="'$(RevitVersion)' == ''">2026</RevitVersion>
+    <RevitInstallDir Condition="'$(RevitInstallDir)' == ''">C:\Program Files\Autodesk\Revit $(RevitVersion)</RevitInstallDir>
+
+    <!-- Revit 2024 uses .NET Framework 4.8, 2025-2026 use .NET 8, 2027 uses .NET 10 -->
+    <TargetFramework Condition="'$(RevitVersion)' == '2024'">net48</TargetFramework>
+    <TargetFramework Condition="'$(RevitVersion)' == '2025' Or '$(RevitVersion)' == '2026'">net8.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(RevitVersion)' == '2027'">net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <Target Name="EnsureRevitInstallDir" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(RevitInstallDir)\RevitAPI.dll')" Text="RevitAPI.dll was not found. Build with /p:RevitInstallDir=&quot;C:\Program Files\Autodesk\Revit 2027&quot; or /p:RevitVersion=2027." />
+    <Error Condition="!Exists('$(RevitInstallDir)\RevitAPIUI.dll')" Text="RevitAPIUI.dll was not found. Build with /p:RevitInstallDir=&quot;C:\Program Files\Autodesk\Revit 2027&quot; or /p:RevitVersion=2027." />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RevitMcp.Contracts\RevitMcp.Contracts.csproj" />
+    <ProjectReference Include="..\RevitMcp.Core\RevitMcp.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitInstallDir)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitInstallDir)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

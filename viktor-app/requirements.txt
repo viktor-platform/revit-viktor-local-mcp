@@ -1,0 +1,5 @@
+viktor>=14.29.0,<15.0.0
+openai==2.45.0
+openai-agents==0.18.1
+pydantic==2.13.4
+python-dotenv>=1.0.0,<2.0.0

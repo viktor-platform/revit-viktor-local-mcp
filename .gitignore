@@ -1,0 +1,30 @@
+.venv/
+node_modules/
+__pycache__/
+*.py[cod]
+output/
+
+# Caches from ruff/pytest/ty runs
+.ruff_cache/
+.pytest_cache/
+.ty/
+*.egg-info/
+build/
+dist/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+revit-mcp-server/publish/
+revit-mcp-server/**/bin/
+revit-mcp-server/**/obj/
+revit-mcp-server/**/.vs/
+revit-mcp-server/**/*.user
+revit-mcp-server/**/*.suo
+revit-mcp-server/**/TestResults/
+revit-mcp-server/**/*.nupkg
+
+viktor-app/venv/
+viktor-app/.venv/
+.env

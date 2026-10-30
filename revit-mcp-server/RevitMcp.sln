@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RevitMcp.Contracts", "src\RevitMcp.Contracts\RevitMcp.Contracts.csproj", "{4D344A0C-7A7F-4B4A-9DA0-BCBE95A5F2AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RevitMcp.Core", "src\RevitMcp.Core\RevitMcp.Core.csproj", "{A157A78B-C4F2-41CD-BF85-BBF52A680B2A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RevitMcp.RevitAddin", "src\RevitMcp.RevitAddin\RevitMcp.RevitAddin.csproj", "{6F8B533A-E1F9-48E3-B4B9-E577A81751AE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RevitMcp.Server", "src\RevitMcp.Server\RevitMcp.Server.csproj", "{FD7A67E5-4B34-41FA-BC3A-BA6357C38BC7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4D344A0C-7A7F-4B4A-9DA0-BCBE95A5F2AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D344A0C-7A7F-4B4A-9DA0-BCBE95A5F2AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D344A0C-7A7F-4B4A-9DA0-BCBE95A5F2AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D344A0C-7A7F-4B4A-9DA0-BCBE95A5F2AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A157A78B-C4F2-41CD-BF85-BBF52A680B2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A157A78B-C4F2-41CD-BF85-BBF52A680B2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A157A78B-C4F2-41CD-BF85-BBF52A680B2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A157A78B-C4F2-41CD-BF85-BBF52A680B2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F8B533A-E1F9-48E3-B4B9-E577A81751AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F8B533A-E1F9-48E3-B4B9-E577A81751AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F8B533A-E1F9-48E3-B4B9-E577A81751AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F8B533A-E1F9-48E3-B4B9-E577A81751AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD7A67E5-4B34-41FA-BC3A-BA6357C38BC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD7A67E5-4B34-41FA-BC3A-BA6357C38BC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD7A67E5-4B34-41FA-BC3A-BA6357C38BC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD7A67E5-4B34-41FA-BC3A-BA6357C38BC7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

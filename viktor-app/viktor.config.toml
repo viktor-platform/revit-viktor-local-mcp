@@ -1,0 +1,5 @@
+app_type = "simple"
+python_version = "3.12"
+# Replace with the name of YOUR app, as registered on the VIKTOR platform
+# (see "viktor-cli create-app" / "viktor-cli apps").
+registered_name = "revit-mcp-agent-template"

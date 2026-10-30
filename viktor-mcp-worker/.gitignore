@@ -1,0 +1,11 @@
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ty/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+request.json
+result.json

@@ -1,0 +1,8 @@
+executables:
+  mcp_bridge:
+    path: 'C:\VIKTOR\MCPWorker\.venv\Scripts\python.exe'
+    arguments:
+      - '-m'
+      - 'viktor_mcp_worker.cli'
+
+maxParallelProcesses: 1
