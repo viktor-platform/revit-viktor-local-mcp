@@ -54,9 +54,7 @@ public sealed class ModelQueryService
             rows.Add(new CategoryRow
             {
                 Name = category.Name,
-                BuiltInCategory = Enum.IsDefined(typeof(BuiltInCategory), (int)category.Id.Value)
-                    ? ((BuiltInCategory)(int)category.Id.Value).ToString()
-                    : string.Empty,
+                BuiltInCategory = BuiltInCategoryName(category.Id.Value),
                 CategoryType = category.CategoryType.ToString(),
                 ElementCount = count
             });
@@ -75,5 +73,13 @@ public sealed class ModelQueryService
             TotalElementCount = rows.Sum(row => row.ElementCount),
             Categories = rows
         };
+    }
+
+    // BuiltInCategory is an Int32 enum in Revit 2024-2026 but Int64 in 2027, so never cast
+    // the id to a fixed integer type: Enum.ToObject accepts a long for either underlying type.
+    private static string BuiltInCategoryName(long categoryId)
+    {
+        var value = (BuiltInCategory)Enum.ToObject(typeof(BuiltInCategory), categoryId);
+        return Enum.IsDefined(typeof(BuiltInCategory), value) ? value.ToString() : string.Empty;
     }
 }
