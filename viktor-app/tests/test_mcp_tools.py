@@ -12,7 +12,7 @@ from tools.mcp_tools import (
     summarize_result,
 )
 from tools.viktor_tools import run_show_table, viktor_tools
-from tools.worker_client import RevitWorkerError
+from tools.worker_client import RevitToolError, RevitWorkerError
 
 from tests.test_tables import FakeStorage
 
@@ -141,3 +141,11 @@ def test_show_table_errors_are_readable():
 
 def test_app_owned_tools():
     assert {t.name for t in viktor_tools()} == {"report_progress", "show_table"}
+
+
+async def test_a_tool_failure_is_not_reported_as_revit_unavailable():
+    client = FakeClient(error=RevitToolError("The Revit tool reported an error: boom"))
+    tool = make_mcp_tool(LIST_CATEGORIES, client=client, storage=FakeStorage())
+    out = json.loads(await tool.on_invoke_tool(Ctx(), "{}"))
+    assert out["errorType"] == "tool_error"
+    assert "boom" in out["message"]

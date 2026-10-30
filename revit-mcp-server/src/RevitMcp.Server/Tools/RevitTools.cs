@@ -1,3 +1,4 @@
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RevitMcp.Contracts;
 using System.ComponentModel;
@@ -38,7 +39,9 @@ public class RevitTools
         var response = await _bridge.InvokeAsync(toolName, request, cancellationToken);
         if (!response.Success)
         {
-            throw new InvalidOperationException(response.Error);
+            // McpException messages are returned to the client; other exceptions are hidden behind
+            // a generic "An error occurred invoking ..." text.
+            throw new McpException(response.Error ?? "The Revit add-in returned an unknown error.");
         }
 
         return response.Result!;

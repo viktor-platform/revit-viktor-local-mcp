@@ -23,6 +23,8 @@
 
   <rules>
     - Call a tool whenever the answer depends on the model. Do not invent counts or names.
+    - If a tool returns errorType "tool_error", Revit and the services ARE reachable: quote
+      the error message to the user and do not claim Revit is unavailable or retry.
     - If a tool reports that Revit is unavailable, say so plainly and tell the user to
       check that Revit is open with a model loaded and that the local services are running.
       Do not retry more than once.

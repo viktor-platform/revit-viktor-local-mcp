@@ -23,15 +23,34 @@ class RevitWorkerError(RuntimeError):
     """Recoverable VIKTOR worker, bridge, protocol, or Revit tool failure."""
 
 
+class RevitToolError(RevitWorkerError):
+    """The chain worked, but the Revit tool itself reported an error."""
+
+
 def _result_field(result: Any, camel_name: str, snake_name: str) -> Any:
     if isinstance(result, dict):
         return result.get(camel_name, result.get(snake_name))
     return getattr(result, camel_name, getattr(result, snake_name, None))
 
 
+def _error_text(result: Any) -> str:
+    """The error message the tool returned, so it is not lost behind a generic one."""
+    texts = []
+    for item in _result_field(result, "content", "content") or []:
+        text = (
+            item.get("text") if isinstance(item, dict) else getattr(item, "text", None)
+        )
+        if isinstance(text, str) and text.strip():
+            texts.append(text.strip())
+    detail = " ".join(texts)[:500]
+    return f"The Revit tool reported an error: {detail}" if detail else (
+        "The Revit tool reported an error."
+    )
+
+
 def parse_tool_result(result: Any) -> dict[str, Any]:
     if bool(_result_field(result, "isError", "is_error")):
-        raise RevitWorkerError("The Revit tool reported an error.")
+        raise RevitToolError(_error_text(result))
 
     structured = _result_field(result, "structuredContent", "structured_content")
     if structured is not None:

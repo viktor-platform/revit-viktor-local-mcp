@@ -128,3 +128,9 @@ def test_from_env_rejects_empty_executable_key(monkeypatch):
     monkeypatch.setenv("VIKTOR_MCP_WORKER_EXECUTABLE_KEY", "  ")
     with pytest.raises(RevitWorkerError):
         RevitWorkerClient.from_env()
+
+
+def test_tool_error_keeps_the_message_the_tool_returned():
+    result = Result(content=[Value("Enum underlying type mismatch")], error=True)
+    with pytest.raises(worker_client.RevitToolError, match="Enum underlying type"):
+        parse_tool_result(result)

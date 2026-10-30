@@ -21,7 +21,7 @@ from agents.tool_context import ToolContext
 from state.results import save_result
 
 from tools.common import tool_error, tool_ok
-from tools.worker_client import RevitWorkerClient, RevitWorkerError
+from tools.worker_client import RevitToolError, RevitWorkerClient, RevitWorkerError
 
 INLINE_LIMIT_BYTES = 6 * 1024  # results up to this size go to the LLM unchanged
 PREVIEW_ITEMS = 5
@@ -87,6 +87,13 @@ def make_mcp_tool(
         try:
             result = await (client or RevitWorkerClient.from_env()).call_tool(
                 name, arguments
+            )
+        except RevitToolError as exc:  # must come first: it is a RevitWorkerError too
+            return tool_error(
+                "tool_error",
+                str(exc),
+                "The Revit services are reachable. Report this error to the user "
+                "instead of retrying the same call.",
             )
         except RevitWorkerError as exc:
             return tool_error("revit_unavailable", str(exc), REVIT_UNAVAILABLE_HINT)
