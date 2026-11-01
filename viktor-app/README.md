@@ -4,7 +4,7 @@ A `simple` VIKTOR app with:
 
 - **`vkt.Chat`** field: an agent (OpenAI Agents SDK on VIKTOR's built-in LLM) that streams its answer and shows tool progress.
 - **`vkt.TableView` "Revit results"**: shows the full result of the latest tool call.
-- Two example tools that call Revit through the local MCP chain.
+- Three example tools that call Revit through the local MCP chain, including **Color all Walls red**.
 
 For the complete install order see the [root README](../README.md).
 
@@ -27,7 +27,9 @@ For the complete install order see the [root README](../README.md).
 
 The C# MCP server is the **single source of truth**. At the start of each chat turn the app asks the worker for `tools.list` (cached for 5 minutes) and turns every tool into an agent tool using the server's name, description and input schema. Adding a tool in C# makes it available to the agent with no Python change.
 
-Safety: only tools the server marks read-only (`ReadOnly = true` in C#, sent as `readOnlyHint`) are exposed. Set the environment variable `VIKTOR_MCP_ALLOW_WRITE_TOOLS=true` to expose the others.
+The app exposes all MCP server tools by default.
+
+Ask **Color all Doors green**. The tool takes only `categoryName` and `color`, such as `{"categoryName": "Doors", "color": "green"}`. It applies line and solid fill overrides to existing elements in the active view. The agent reports the view name and number of elements changed.
 
 If the worker or MCP server is down, the agent still starts, is told why no Revit tools are available, and tells the user.
 
@@ -56,7 +58,7 @@ The Revit tools only work when the full local chain is running. Without it, the 
 
 ## Add a tool
 
-Nothing to do here. Add the tool in C# ([steps](../revit-mcp-server/README.md#add-a-tool)), mark it `ReadOnly = true`, republish the MCP server and restart it; the app picks it up within 5 minutes (or on the next app restart).
+Add the tool in C# ([steps](../revit-mcp-server/README.md#add-a-tool)), republish the MCP server and restart it. The app picks up all server tools within 5 minutes, or on the next app restart. No Python tool list change is needed.
 
 Change only what the *agent* does with results by editing `agent/system_prompt.xml`, or add app-side behaviour (like `show_table`) in `tools/viktor_tools.py` and list it in `viktor_tools()`.
 

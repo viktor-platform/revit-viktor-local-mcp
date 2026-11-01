@@ -27,8 +27,11 @@ class Parametrization(vkt.Parametrization):
         "**Try**\n\n"
         "- What is the name of the open model?\n"
         "- List the categories in the model.\n"
-        "- Which three categories have the most elements?\n\n"
-        "The agent can only read the model; it never changes Revit."
+        "- Which three categories have the most elements?\n"
+        "- Color all Floors blue.\n"
+        "- Color all Structural Columns red.\n\n"
+        "Color changes apply to the active Revit view. Use Revit Undo to remove "
+        "the last color change."
     )
     chat = vkt.Chat(
         "Revit agent",

@@ -1,6 +1,6 @@
 # Revit add-in and MCP server
 
-The add-in reads the open Revit model. A separate local MCP server exposes its tools to the VIKTOR worker bridge. Revit API calls run inside Revit through an `ExternalEvent`.
+The add-in reads the open Revit model and can color elements in the active view. A separate local MCP server exposes its tools to the VIKTOR worker bridge. Revit API calls run inside Revit through an `ExternalEvent`.
 
 For the full installation order see the [root README](../README.md).
 
@@ -21,8 +21,28 @@ The add-in targets .NET Framework 4.8 for Revit 2024, .NET 8 for 2025–2026 and
 | --- | --- | --- |
 | `get_model_name` | none | `title`, `filePath`, `isWorkshared`, `revitVersion` |
 | `list_categories` | `modelCategoriesOnly` (default true), `includeEmpty` (default false) | `modelTitle`, `categoryCount`, `totalElementCount`, `categories[]` (`name`, `builtInCategory`, `categoryType`, `elementCount`) |
+| `color_category_elements` | `categoryName`, `color` | `modelTitle`, `viewId`, `viewName`, `categoryName`, `coloredElementCount`, `color` |
 
-Both are read-only and open no transactions.
+The first two tools only read data. The color tool changes element overrides in one transaction. It sets projection and cut line colors and visible solid foreground fills. It keeps unrelated override settings, such as line weights and transparency.
+
+### Color a category
+
+In the VIKTOR chat, enter **Color all Walls red**. To call the MCP tool directly, use `color_category_elements` with:
+
+~~~json
+{
+  "categoryName": "Doors",
+  "color": "green"
+}
+~~~
+
+Use the category name from `list_categories`, or its built-in name such as `OST_Walls`. Name matching ignores letter case. Built-in names also work when Revit uses another display language.
+
+Color accepts common names such as `red`, `green`, `blue`, `orange` or `purple`, or a hex value such as `#008000`.
+
+The scope is all existing element instances in that category in the open project. Their overrides apply only in the active view, including for instances that are currently hidden. Other views, materials and linked documents are unchanged. New elements do not inherit these per-element overrides. Revit Undo removes the change in one step.
+
+Open a project and a view that supports graphics overrides, such as a plan, section or 3D view. An empty category returns `coloredElementCount: 0`.
 
 ## Build and register
 
@@ -59,7 +79,7 @@ Example: a `count_elements` tool that counts the elements of one category.
    }
    ~~~
 
-   Keep `[Description]` text clear: it becomes the tool schema the LLM reads. Mark the MCP tool `ReadOnly = true` (step 4) or the VIKTOR app hides it by default.
+   Keep `[Description]` text clear: it becomes the tool schema the LLM reads. The VIKTOR app exposes all server tools by default.
 
 2. **Revit logic** a method on `ModelQueryService` (or a new service) in `RevitMcp.Core/Services/`, e.g. `int CountElements(Document doc, string categoryName)` using `FilteredElementCollector`.
 
@@ -77,12 +97,6 @@ Example: a `count_elements` tool that counts the elements of one category.
 5. Rebuild the add-in (Revit closed), republish and restart the server. The VIKTOR app lists the server's tools at run time, so it needs no change (see [viktor-app](../viktor-app/README.md#where-tools-come-from)).
 
 JSON property names are camelCase on the wire (`CategoryName` → `categoryName`).
-
-## Safety
-
-The tools in this template are read-only. If you add tools that modify the model, wrap the change in a `Transaction` inside the handler, name it clearly, return what changed, and require explicit user confirmation in the agent prompt. Never expose arbitrary code execution to the agent.
-
-The adapter and server are not authenticated: bind them to localhost only.
 
 ## Troubleshooting
 

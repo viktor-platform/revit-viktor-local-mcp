@@ -129,7 +129,8 @@ public sealed class App : IExternalApplication
         {
             // Register every new handler here. The name must match the MCP tool name.
             new GetModelNameHandler(),
-            new ListCategoriesHandler()
+            new ListCategoriesHandler(),
+            new ColorCategoryElementsHandler()
         });
 
         _broker = new BridgeRequestBroker(dispatcher);

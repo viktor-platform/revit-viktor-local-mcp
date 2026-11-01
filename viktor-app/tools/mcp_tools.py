@@ -1,15 +1,3 @@
-"""Agent tools built at run time from the MCP server's own tool list (``tools.list``).
-
-The C# server is the single source of truth: name, description and input schema come
-from it, so adding a tool in C# makes it available to the agent with no Python change.
-
-Each MCP tool becomes one Agents SDK ``FunctionTool`` that:
-  1. calls the tool through the VIKTOR Generic worker (``tools.call``),
-  2. stores the FULL result in entity storage (``state.results``),
-  3. returns the LLM a result small enough to read, plus a preview if it is large.
-Presenting data (tables) is a separate concern: see ``tools/viktor_tools.py``.
-"""
-
 import json
 import os
 import time
@@ -44,7 +32,7 @@ def is_read_only(tool: dict[str, Any]) -> bool:
 
 
 def allow_write_tools() -> bool:
-    return os.getenv(ALLOW_WRITE_ENV, "").strip().lower() in {"1", "true", "yes"}
+    return os.getenv(ALLOW_WRITE_ENV, "true").strip().lower() in {"1", "true", "yes"}
 
 
 def summarize_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -145,10 +133,7 @@ async def load_mcp_tools(
         and (is_read_only(definition) or allow_write_tools())
     ]
     if not tools:
-        return [], (
-            "The MCP server exposed no usable read-only tools. "
-            f"Set {ALLOW_WRITE_ENV}=true to expose tools that can change Revit."
-        )
+        return [], "The MCP server exposed no usable tools."
     return tools, None
 
 

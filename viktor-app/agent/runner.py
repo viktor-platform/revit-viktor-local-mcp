@@ -58,7 +58,7 @@ def load_system_prompt() -> str:
 
 
 async def build_agent() -> Agent[AgentContext]:
-    """Tools = the app's own tools + every read-only tool the MCP server lists."""
+    """Load the app tools and supported tools from the MCP server."""
     mcp_tools, warning = await load_mcp_tools()
     instructions = load_system_prompt()
     if warning:

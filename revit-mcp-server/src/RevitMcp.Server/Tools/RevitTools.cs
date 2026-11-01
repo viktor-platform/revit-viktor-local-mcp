@@ -34,6 +34,26 @@ public class RevitTools
         return InvokeToolAsync("list_categories", request, cancellationToken);
     }
 
+    [McpServerTool(Name = "color_category_elements", ReadOnly = false, Idempotent = true, Destructive = true, OpenWorld = false)]
+    [Description("Color all existing elements of any category in the active Revit view. Supply a category and a color. Set solid surface and cut fills and line colors. Return the view, category, color and number of elements changed.")]
+    public Task<object> ColorCategoryElements(
+        [Description("Category name, such as Floors, Doors or Structural Columns, or a built-in name such as OST_Floors.")] string categoryName,
+        [Description("Common color name, such as red, green or blue, or a hex color such as #008000.")] string color,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ColorCategoryElementsRequest { CategoryName = categoryName, Color = color };
+        try
+        {
+            request.Validate();
+        }
+        catch (ArgumentException ex)
+        {
+            throw new McpException(ex.Message);
+        }
+
+        return InvokeToolAsync("color_category_elements", request, cancellationToken);
+    }
+
     private async Task<object> InvokeToolAsync(string toolName, object request, CancellationToken cancellationToken)
     {
         var response = await _bridge.InvokeAsync(toolName, request, cancellationToken);

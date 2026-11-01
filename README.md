@@ -1,13 +1,18 @@
 # Revit + VIKTOR MCP agent template
 
-A minimal, working starting point for a **VIKTOR chat agent that talks to a live Revit model**. It ships with two read-only example tools and a table view, so you can see the whole chain working before adding your own tools.
+A minimal, working starting point for a **VIKTOR chat agent that talks to a live Revit model**. It has two tools to read model data, a tool to color elements, and a table view.
 
 | Example tool | What it does |
 | --- | --- |
 | `get_model_name` | Title, file path, workshared flag and Revit version of the open model |
 | `list_categories` | Element categories of the model with element counts |
+| `color_category_elements` | Color all existing elements in any category in the active view |
 
 Ask the agent *"List the categories in the model"* and the full result appears in the **Revit results** table next to the chat.
+
+Ask *"Color all Walls red"* to apply red line and solid fill overrides in the active Revit view. The tool changes existing instances in the open project, including elements hidden in that view. It does not change materials, other views or linked models. Use Revit Undo to remove the change in one step.
+
+The same tool accepts any category. For example, ask *"Color all Floors blue"*, *"Color all Doors green"* or *"Color all Structural Columns red"*. Use the names returned by `list_categories`.
 
 ## How it fits together
 
@@ -192,12 +197,11 @@ Add it in C# only; the VIKTOR app builds its agent tools from the server's tool 
 1. **Contract**: request/result classes in `revit-mcp-server/src/RevitMcp.Contracts/`.
 2. **Revit logic**: a method in `RevitMcp.Core/Services/` that uses the Revit API.
 3. **Handler**: an `IRevitCommandHandler` in `RevitMcp.RevitAddin/Handlers/`, registered in `App.cs`.
-4. **MCP tool**: a method in `RevitMcp.Server/Tools/RevitTools.cs` with the same name and `ReadOnly = true`.
+4. **MCP tool**: a method in `RevitMcp.Server/Tools/RevitTools.cs` with the same name. The app exposes all server tools by default.
 
 Rebuild the add-in (step 4, with Revit closed), republish the server (step 5) and restart the services. Results can be shown in the table with no extra code: the agent calls `show_table`.
 
 ## Limitations
 
 - Template / starting point, not a hardened product. Keep every service on localhost.
-- The example tools only read the model. If you add tools that change Revit, run them inside a transaction in the handler and ask for explicit user confirmation first.
 - The agent uses VIKTOR's built-in LLM (`vkt.ViktorOpenAI`), which has fair-usage limits.
